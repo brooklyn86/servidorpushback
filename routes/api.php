@@ -24,6 +24,7 @@ Route::group(['middleware' => 'auth:api','namespace' => 'Api','prefix' => 'v1' ]
       Route::post('register', 'UserController@register');
       Route::post('upload', 'NotificationController@sendfileUpload');
       Route::post('create/notification/device', 'NotificationController@create');
+      Route::post('create/token/client', 'NotificationController@createTokenClient');
 
   });
   

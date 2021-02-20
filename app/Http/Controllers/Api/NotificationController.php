@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Storage;
 use App\Models\Message;
 use App\Models\MessageItem;
 use App\Models\Device;
+use App\Models\TokenPush;
 class NotificationController extends Controller
 {
     /**
@@ -55,6 +56,25 @@ class NotificationController extends Controller
         }    
         return Response()->json(['error' => true,'image' => 'Não imagem']);
     }
+    public function createTokenClient(Request $request){
+        $hasToken = TokenPush::where('app_secret', $request->secret)->where('token', $request->token)->first();
+        if(!$hasToken){
+            $device = Device::where('secret', $request->secret)->first();
+            $token = new TokenPush;
+            $token->token = $request->token;
+            $token->app_id = $device->id;
+            $token->app_secret = $request->secret;
+            $token->ip = $request->ip();
+            $response = $token->save();
+
+            if($response){
+                return Response()->json(['error' => false, 'message' => 'Cadastro com sucesso']);
+            }else{
+                return Response()->json(['error' => true, 'message' => 'Erro ao cadastrar seu token']);
+            }
+        }
+        return Response()->json(['error' => true, 'message' => 'Erro ao cadastrar seu token']);
+    }
     public function create(Request $request)
     {   
         $params = [];
@@ -62,24 +82,45 @@ class NotificationController extends Controller
         $ip = $request->ip();
         $parametros = $request->all();
         $key = Device::where('key', $parametros['params'][0]['value'])->where('secret', $parametros['params'][1]['value'])->first();
+        $tokens = TokenPush::where('app_secret', $parametros['params'][1]['value'])->select('token')->get()->toArray();
+
         if($key){
             $message = new Message;
             $message->key_id = $key->id;
             $message->ip_address = $ip;
             $responseMessage = $message->save();
             foreach($parametros['params'] as $p){
-                if($p['key'] != "key" && $p['key'] != 'secret'){
-                    $messageItem = new MessageItem;
-                    $messageItem->message_id = $message->id;
-                    $messageItem->key = $p['key'];
-                    $messageItem->value = $p['value'];
-                    $messageItem->save();
+                if(key($p) == 'base'){
+                    foreach($p['base'] as $key => $value){
+                        $messageItem = new MessageItem;
+                        $messageItem->message_id = $message->id;
+                        $messageItem->key = $key;
+                        $messageItem->value = $value;
+                        $messageItem->save();
+                        $arrayAux  = Arr::add($arrayAux, $key, $value);
+
+                    }
+                }else{
+                    if($p['key'] != "key" && $p['key'] != 'secret'){
+                        $messageItem = new MessageItem;
+                        $messageItem->message_id = $message->id;
+                        $messageItem->key = $p['key'];
+                        $messageItem->value = $p['value'];
+                        $messageItem->save();
+                        $arrayAux  = Arr::add($arrayAux, $p['key'], $p['value']);
+
+                    }
                 }
+
                     
-                $arrayAux  = Arr::add($arrayAux, $p['key'], $p['value']);
             } 
-            // FIRE EVENT
-            event(new NotificationEvent($arrayAux, 'like'));
+            $tokensPush = [];
+            foreach($tokens as $token){
+               array_push($tokensPush,$token['token']);
+            }
+
+            $arrayAux  = Arr::add($arrayAux, 'tokens', $tokensPush);
+            event(new NotificationEvent($arrayAux, 'send-notification'));
         }
         
     }
