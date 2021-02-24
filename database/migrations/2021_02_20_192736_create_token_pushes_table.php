@@ -19,6 +19,7 @@ class CreateTokenPushesTable extends Migration
             $table->string('app_secret');
             $table->text('token');
             $table->ipAddress('ip');
+            $table->integer('status')->default(1);
             $table->timestamps();
         });
     }

@@ -4,7 +4,7 @@ namespace App\Listeners;
 
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
-
+use App\Models\TokenPush;
 class NotificationListener
 {
     /**
@@ -42,9 +42,15 @@ class NotificationListener
             $codeHttp   = curl_getinfo($ch, CURLINFO_HTTP_CODE);
             curl_close($ch);
 
-           
+            
+            $codeFail = json_decode($response);
 
-            return 'OK';
+            foreach($codeFail as $code){
+                $p = TokenPush::where('token', $code)->first();
+                $p->status = 0;
+                $p->save();
+            }
+            return $response;
      
         }
         catch(Exception $e){

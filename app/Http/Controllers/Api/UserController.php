@@ -5,6 +5,9 @@ use App\Http\Controllers\Controller;
 use App\Models\User;  
 use Illuminate\Support\Facades\Auth; 
 use Validator;
+use App\Models\TokenPush;
+use App\Models\Device;
+use App\Models\Message;
 
 class UserController extends Controller 
 {
@@ -58,9 +61,40 @@ public $successStatus = 200;
   public function details() 
   { 
     $user = Auth::user(); 
-    $devices = Auth::user()->devices; 
-    $devices = Auth::user()->roles; 
-    return response()->json(['user' => $user ], $this->successStatus); 
+    $devices = Auth::user()->devices;
+    $roles = Auth::user()->roles;
+    $isAdmin = $this->filterRole($roles);
+    $messageTotal = [];
+    $dispostivosTotal = [];
+    if($isAdmin){
+      $menJan = Message::whereMonth('created_at', 1)->whereYear('created_at', date('Y'))->count();
+      $menFev = Message::whereMonth('created_at', 2)->whereYear('created_at', date('Y'))->count();
+      $menMar = Message::whereMonth('created_at', 3)->whereYear('created_at', date('Y'))->count();
+      $menAbri = Message::whereMonth('created_at', 4)->whereYear('created_at', date('Y'))->count();
+      $menMai = Message::whereMonth('created_at', 5)->whereYear('created_at', date('Y'))->count();
+      $menJun = Message::whereMonth('created_at', 6)->whereYear('created_at', date('Y'))->count();
+      $menJul = Message::whereMonth('created_at', 7)->whereYear('created_at', date('Y'))->count();
+      $menAgo = Message::whereMonth('created_at', 8)->whereYear('created_at', date('Y'))->count();
+      $menSet = Message::whereMonth('created_at', 9)->whereYear('created_at', date('Y'))->count();
+      $menOut = Message::whereMonth('created_at', 10)->whereYear('created_at', date('Y'))->count();
+      $menNov = Message::whereMonth('created_at', 11)->whereYear('created_at', date('Y'))->count();
+      $menDez = Message::whereMonth('created_at', 12)->whereYear('created_at', date('Y'))->count();
+      $messageTotal = [[$menJan,$menFev,$menMar, $menAbri, $menMai, $menJun, $menJul, $menAgo, $menSet, $menOut, $menNov, $menDez]];
+      $totalCliente = Device::join('token_pushes as token','devices.id','=','token.app_id');
+      $totalClienteAtivo = Device::join('token_pushes as token','devices.id','=','token.app_id');
+      $totalClienteInativo = Device::join('token_pushes as token','devices.id','=','token.app_id');
+
+      $total = $totalCliente->count();
+      $totalAtivo = $totalClienteAtivo->where('status',1)->count();
+      $totalInativo= $totalClienteInativo->where('status',0)->count();
+      $dispostivosTotal = [[$totalAtivo,$totalInativo,$total]];
+
+    }else{
+      $totalCliente = Device::join('token_pushes as token','devices.id','=','token.app_id')->where('devices.user_id',Auth::user()->id)->get();
+    }
+
+    
+    return response()->json(['user' => $user,'clients' => ['total'=> $total,'totalAtivo'=>$totalAtivo, 'totalInativo'=>$totalInativo], 'messageTotal' => $messageTotal, 'dispostivosTotal' => $dispostivosTotal], $this->successStatus); 
   } 
 /** 
    * details api 

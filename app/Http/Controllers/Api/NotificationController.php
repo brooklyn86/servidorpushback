@@ -82,7 +82,7 @@ class NotificationController extends Controller
         $ip = $request->ip();
         $parametros = $request->all();
         $key = Device::where('key', $parametros['params'][0]['value'])->where('secret', $parametros['params'][1]['value'])->first();
-        $tokens = TokenPush::where('app_secret', $parametros['params'][1]['value'])->select('token')->get()->toArray();
+        $tokens = TokenPush::where('app_secret', $parametros['params'][1]['value'])->where('status', 1)->select('token')->get()->toArray();
 
         if($key){
             $message = new Message;

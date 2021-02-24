@@ -7,6 +7,8 @@ use Illuminate\Http\Request;
 use App\Models\Device;
 use App\Models\Message;
 use App\Models\MessageItem;
+use App\Models\TokenPush;
+
 class DeviceController extends Controller
 {
     /**
@@ -92,10 +94,17 @@ class DeviceController extends Controller
         $messageOut = Message::where('key_id',$userDevices->id)->whereMonth('created_at', '10')->whereYear('created_at', date('Y'))->count();
         $messageNov = Message::where('key_id',$userDevices->id)->whereMonth('created_at', '11')->whereYear('created_at', date('Y'))->count();
         $messageDez = Message::where('key_id',$userDevices->id)->whereMonth('created_at', '12')->whereYear('created_at', date('Y'))->count();
+
+        $totalClients = TokenPush::where('app_id',$userDevices->id)->count();
+        $totalAtivosClients = TokenPush::where('app_id',$userDevices->id)->where('status',1)->count();
+        $totalDesativadosClients = TokenPush::where('app_id',$userDevices->id)->where('status',0)->count();
         if( $userDevices){
             return Response()->json(['error' => false, 'devices' => $userDevices,'dados' => [
                 'totalMensagem' => $messagestotal,
                 'totalMensagemMes' => $messagesMes,
+                'totalClients' => $totalClients,
+                'totalAtivosClients' => $totalAtivosClients,
+                'totalDesativadosClients' => $totalDesativadosClients,
                 'messages' => $messages->toArray(),
                 'monthCount' => [$messageJan,$messageFev,$messageMar,$messageAbr,$messageMai,$messageJun,$messageJul,$messageAgos,$messageSet,$messageOut,$messageNov, $messageDez]
                 ]]);
